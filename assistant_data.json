@@ -1,0 +1,12 @@
+{
+    "contacts": [
+        {
+            "name": "Max Mustermann",
+            "address": "Musterstrasse 1, 12345 Musterstadt",
+            "phone": "+491234567890",
+            "email": "max.mustermann@example.com",
+            "birthday": "1990-01-01"
+        }
+    ],
+    "notes": []
+}
