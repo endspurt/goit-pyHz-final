@@ -3,44 +3,24 @@ import os
 import re
 from datetime import datetime, timedelta
 
-# Dateipfad für die JSON-Daten
-DATA_FILE = 'personal_assistant_data.json'
+DATA_FILE = 'assistant_data.json'
 
-# Helper-Funktionen
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'r') as file:
             return json.load(file)
-    return {'contacts': [], 'notes': []}
+    return {"contacts": [], "notes": []}
 
 def save_data(data):
     with open(DATA_FILE, 'w') as file:
         json.dump(data, file, indent=4)
 
 def validate_email(email):
-    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 def validate_phone(phone):
-    return re.match(r"^\+?[1-9]\d{1,14}$", phone) is not None
+    return re.match(r"^\+?1?\d{9,15}$", phone)
 
-def find_contacts_by_name(data, name):
-    return [contact for contact in data['contacts'] if name.lower() in contact['name'].lower()]
-
-def find_notes_by_tag(data, tag):
-    return [note for note in data['notes'] if tag.lower() in note.get('tags', '').lower()]
-
-def upcoming_birthdays(data, days):
-    today = datetime.today()
-    upcoming = []
-    for contact in data['contacts']:
-        if 'birthday' in contact:
-            birthday = datetime.strptime(contact['birthday'], "%Y-%m-%d")
-            birthday_this_year = birthday.replace(year=today.year)
-            if 0 <= (birthday_this_year - today).days < days:
-                upcoming.append(contact)
-    return upcoming
-
-# Hauptfunktionen
 def add_contact(data):
     name = input("Name: ")
     address = input("Address: ")
@@ -48,177 +28,144 @@ def add_contact(data):
     email = input("Email: ")
     birthday = input("Birthday (YYYY-MM-DD): ")
     
-    if not validate_phone(phone):
-        print("Invalid phone number.")
-        return
     if not validate_email(email):
-        print("Invalid email address.")
+        print("Invalid email format")
+        return
+    if not validate_phone(phone):
+        print("Invalid phone format")
         return
     
-    data['contacts'].append({
-        'name': name,
-        'address': address,
-        'phone': phone,
-        'email': email,
-        'birthday': birthday
-    })
+    contact = {
+        "name": name,
+        "address": address,
+        "phone": phone,
+        "email": email,
+        "birthday": birthday
+    }
+    data["contacts"].append(contact)
     save_data(data)
-    print("Contact added.")
+    print("Contact added successfully")
 
-def edit_contact(data):
-    name = input("Enter the name of the contact to edit: ")
-    contacts = find_contacts_by_name(data, name)
-    if not contacts:
-        print("No contacts found.")
-        return
-    
-    contact = contacts[0]
-    print(f"Editing contact: {contact['name']}")
-    contact['address'] = input(f"Address ({contact['address']}): ") or contact['address']
-    contact['phone'] = input(f"Phone ({contact['phone']}): ") or contact['phone']
-    contact['email'] = input(f"Email ({contact['email']}): ") or contact['email']
-    contact['birthday'] = input(f"Birthday ({contact['birthday']}): ") or contact['birthday']
-    
-    if not validate_phone(contact['phone']):
-        print("Invalid phone number.")
-        return
-    if not validate_email(contact['email']):
-        print("Invalid email address.")
-        return
-    
-    save_data(data)
-    print("Contact updated.")
-
-def delete_contact(data):
-    name = input("Enter the name of the contact to delete: ")
-    contacts = find_contacts_by_name(data, name)
-    if not contacts:
-        print("No contacts found.")
-        return
-    
-    data['contacts'].remove(contacts[0])
-    save_data(data)
-    print("Contact deleted.")
-
-def search_contact(data):
-    name = input("Enter the name to search: ")
-    contacts = find_contacts_by_name(data, name)
-    if not contacts:
-        print("No contacts found.")
-        return
-    
-    for contact in contacts:
-        print(contact)
-
-def list_upcoming_birthdays(data):
-    days = int(input("Enter the number of days to check for upcoming birthdays: "))
-    upcoming = upcoming_birthdays(data, days)
+def list_upcoming_birthdays(data, days):
+    today = datetime.today()
+    upcoming = []
+    for contact in data["contacts"]:
+        birthday = datetime.strptime(contact["birthday"], "%Y-%m-%d")
+        this_year_birthday = birthday.replace(year=today.year)
+        if 0 <= (this_year_birthday - today).days <= days:
+            upcoming.append(contact)
     if not upcoming:
-        print("No upcoming birthdays.")
-        return
-    
-    for contact in upcoming:
-        print(contact)
+        print("No upcoming birthdays in the next", days, "days")
+    else:
+        for contact in upcoming:
+            print(contact)
+
+def search_contacts(data, query):
+    results = [contact for contact in data["contacts"] if query.lower() in contact["name"].lower() or query.lower() in contact["address"].lower() or query.lower() in contact["phone"] or query.lower() in contact["email"].lower()]
+    if results:
+        for result in results:
+            print(result)
+    else:
+        print("No contacts found")
+
+def edit_contact(data, name):
+    for contact in data["contacts"]:
+        if contact["name"].lower() == name.lower():
+            contact["address"] = input(f"New address ({contact['address']}): ") or contact["address"]
+            contact["phone"] = input(f"New phone ({contact['phone']}): ") or contact["phone"]
+            contact["email"] = input(f"New email ({contact['email']}): ") or contact["email"]
+            contact["birthday"] = input(f"New birthday ({contact['birthday']}): ") or contact["birthday"]
+            save_data(data)
+            print("Contact updated successfully")
+            return
+    print("Contact not found")
+
+def delete_contact(data, name):
+    data["contacts"] = [contact for contact in data["contacts"] if contact["name"].lower() != name.lower()]
+    save_data(data)
+    print("Contact deleted successfully")
 
 def add_note(data):
-    title = input("Title: ")
-    content = input("Content: ")
-    tags = input("Tags (comma-separated): ")
-    
-    data['notes'].append({
-        'title': title,
-        'content': content,
-        'tags': tags
-    })
+    text = input("Note text: ")
+    tags = input("Tags (comma-separated): ").split(",")
+    note = {"text": text, "tags": tags}
+    data["notes"].append(note)
     save_data(data)
-    print("Note added.")
+    print("Note added successfully")
 
-def edit_note(data):
-    title = input("Enter the title of the note to edit: ")
-    notes = [note for note in data['notes'] if title.lower() in note['title'].lower()]
-    if not notes:
-        print("No notes found.")
-        return
-    
-    note = notes[0]
-    print(f"Editing note: {note['title']}")
-    note['content'] = input(f"Content ({note['content']}): ") or note['content']
-    note['tags'] = input(f"Tags ({note['tags']}): ") or note['tags']
-    
+def search_notes(data, query):
+    results = [note for note in data["notes"] if query.lower() in note["text"].lower() or query.lower() in [tag.lower() for tag in note["tags"]]]
+    if results:
+        for result in results:
+            print(result)
+    else:
+        print("No notes found")
+
+def edit_note(data, note_text):
+    for note in data["notes"]:
+        if note["text"].lower() == note_text.lower():
+            note["text"] = input(f"New text ({note['text']}): ") or note["text"]
+            note["tags"] = input(f"New tags (comma-separated) ({', '.join(note['tags'])}): ").split(",") or note["tags"]
+            save_data(data)
+            print("Note updated successfully")
+            return
+    print("Note not found")
+
+def delete_note(data, note_text):
+    data["notes"] = [note for note in data["notes"] if note["text"].lower() != note_text.lower()]
     save_data(data)
-    print("Note updated.")
+    print("Note deleted successfully")
 
-def delete_note(data):
-    title = input("Enter the title of the note to delete: ")
-    notes = [note for note in data['notes'] if title.lower() in note['title'].lower()]
-    if not notes:
-        print("No notes found.")
-        return
-    
-    data['notes'].remove(notes[0])
-    save_data(data)
-    print("Note deleted.")
+def main_menu():
+    print("\nPersonal Assistant Menu:")
+    print("1. Add Contact")
+    print("2. List Upcoming Birthdays")
+    print("3. Search Contact")
+    print("4. Edit Contact")
+    print("5. Delete Contact")
+    print("6. Add Note")
+    print("7. Search Note")
+    print("8. Edit Note")
+    print("9. Delete Note")
+    print("10. Exit")
 
-def search_note_by_tag(data):
-    tag = input("Enter the tag to search: ")
-    notes = find_notes_by_tag(data, tag)
-    if not notes:
-        print("No notes found.")
-        return
-    
-    for note in notes:
-        print(note)
-
-def help():
-    print("Available commands:")
-    print("  1. Add contact")
-    print("  2. Edit contact")
-    print("  3. Delete contact")
-    print("  4. Search contact")
-    print("  5. Upcoming birthdays")
-    print("  6. Add note")
-    print("  7. Edit note")
-    print("  8. Delete note")
-    print("  9. Search note by tag")
-    print("  0. Help")
-    print("  10. Exit")
-
-# Hauptprogramm
 def main():
     data = load_data()
     
     while True:
-        help()
-        try:
-            command = int(input("Enter a command number: ").strip())
-        except ValueError:
-            print("Invalid command number.")
-            continue
+        main_menu()
+        choice = input("Enter your choice: ")
         
-        if command == 1:
+        if choice == "1":
             add_contact(data)
-        elif command == 2:
-            edit_contact(data)
-        elif command == 3:
-            delete_contact(data)
-        elif command == 4:
-            search_contact(data)
-        elif command == 5:
-            list_upcoming_birthdays(data)
-        elif command == 6:
+        elif choice == "2":
+            days = int(input("Enter number of days: "))
+            list_upcoming_birthdays(data, days)
+        elif choice == "3":
+            query = input("Enter search query: ")
+            search_contacts(data, query)
+        elif choice == "4":
+            name = input("Enter contact name to edit: ")
+            edit_contact(data, name)
+        elif choice == "5":
+            name = input("Enter contact name to delete: ")
+            delete_contact(data, name)
+        elif choice == "6":
             add_note(data)
-        elif command == 7:
-            edit_note(data)
-        elif command == 8:
-            delete_note(data)
-        elif command == 9:
-            search_note_by_tag(data)
-        elif command == 0:
-            help()
-        elif command == 10:
+        elif choice == "7":
+            query = input("Enter search query: ")
+            search_notes(data, query)
+        elif choice == "8":
+            note_text = input("Enter note text to edit: ")
+            edit_note(data, note_text)
+        elif choice == "9":
+            note_text = input("Enter note text to delete: ")
+            delete_note(data, note_text)
+        elif choice == "10":
+            print("Exiting...")
             break
         else:
-            print("Unknown command number. Type '0' for a list of commands.")
+            print("Invalid choice. Please enter a number between 1 and 10.")
 
 if __name__ == "__main__":
     main()
