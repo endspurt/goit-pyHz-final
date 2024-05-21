@@ -62,15 +62,21 @@ def list_upcoming_birthdays(data, days):
             print(contact)
 
 def search_contacts(data, query):
-    if not query.strip():
+    query = query.strip().lower()
+    if not query:
         print("No contacts found. Please provide a valid search query.")
         return
-    
-    results = [contact for contact in data if query.lower() in contact["name"].lower()]
+
+    results = [contact for contact in data if query in contact["name"].lower()]
     if results:
         print("Search results:")
         for result in results:
-            print(result)
+            print("Name:", result["name"])
+            print("Address:", result["address"])
+            print("Phone:", result["phone"])
+            print("Email:", result["email"])
+            print("Birthday:", result["birthday"])
+            print()
     else:
         print("No contacts found with the name:", query)
 
@@ -101,12 +107,13 @@ def add_note():
     print("Note added successfully")
 
 def search_notes(query):
-    if not query.strip():
+    data = load_data(NOTES_FILE)
+    query = query.strip().lower()
+    if not query:
         print("No notes found. Please provide a valid search query.")
         return
-    
-    data = load_data(NOTES_FILE)
-    results = [note for note in data if query.lower() in note["text"].lower() or query.lower() in [tag.lower() for tag in note["tags"]]]
+
+    results = [note for note in data if query in note["text"].lower() or query in [tag.lower() for tag in note["tags"]]]
     if results:
         print("Search results:")
         for result in results:
@@ -114,10 +121,11 @@ def search_notes(query):
     else:
         print("No notes found with the query:", query)
 
-def edit_note(note_text):
+def edit_note():
     data = load_data(NOTES_FILE)
+    note_text = input("Enter note text to edit: ").strip().lower()
     for note in data:
-        if note["text"].lower() == note_text.lower():
+        if note["text"].lower() == note_text:
             note["text"] = input(f"New text ({note['text']}): ") or note["text"]
             note["tags"] = input(f"New tags (comma-separated) ({', '.join(note['tags'])}): ").split(",") or note["tags"]
             save_data(data, NOTES_FILE)
@@ -125,9 +133,10 @@ def edit_note(note_text):
             return
     print("Note not found")
 
-def delete_note(note_text):
+def delete_note():
     data = load_data(NOTES_FILE)
-    data = [note for note in data if note["text"].lower() != note_text.lower()]
+    note_text = input("Enter note text to delete: ").strip().lower()
+    data = [note for note in data if note["text"].lower() != note_text]
     save_data(data, NOTES_FILE)
     print("Note deleted successfully")
 
@@ -171,11 +180,9 @@ def main():
             query = input("Enter search query: ")
             search_notes(query)
         elif choice == "8":
-            note_text = input("Enter note text to edit: ")
-            edit_note(note_text)
+            edit_note()
         elif choice == "9":
-            note_text = input("Enter note text to delete: ")
-            delete_note(note_text)
+            delete_note()
         elif choice == "10":
             print("Exiting...")
             break
@@ -184,4 +191,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
