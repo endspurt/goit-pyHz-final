@@ -1,292 +1,224 @@
 import json
+import os
 import re
 from datetime import datetime, timedelta
 
-# Contact class to represent a contact
-class Contact:
-    def __init__(self, name, address, phone, email, birthday):
-        self.name = name
-        self.address = address
-        self.phone = phone
-        self.email = email
-        self.birthday = birthday
+# Dateipfad für die JSON-Daten
+DATA_FILE = 'personal_assistant_data.json'
 
-    def to_dict(self):
-        return {
-            "name": self.name,
-            "address": self.address,
-            "phone": self.phone,
-            "email": self.email,
-            "birthday": self.birthday.strftime("%Y-%m-%d")
-        }
+# Helper-Funktionen
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as file:
+            return json.load(file)
+    return {'contacts': [], 'notes': []}
 
-# Note class to represent a note
-class Note:
-    def __init__(self, text, tags=None):
-        self.text = text
-        self.tags = tags or []
+def save_data(data):
+    with open(DATA_FILE, 'w') as file:
+        json.dump(data, file, indent=4)
 
-    def to_dict(self):
-        return {
-            "text": self.text,
-            "tags": self.tags
-        }
+def validate_email(email):
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
 
-# Personal Assistant class
-class PersonalAssistant:
-    def __init__(self):
-        self.contacts = []
-        self.notes = []
-        self.load_data()
+def validate_phone(phone):
+    return re.match(r"^\+?[1-9]\d{1,14}$", phone) is not None
 
-    def load_data(self):
-        # Load contacts from file
-        try:
-            with open("contacts.json", "r") as file:
-                contacts_data = json.load(file)
-                self.contacts = [Contact(c["name"], c["address"], c["phone"], c["email"], datetime.strptime(c["birthday"], "%Y-%m-%d")) for c in contacts_data]
-        except FileNotFoundError:
-            print("contacts.json not found. Starting with an empty contact list.")
-        except json.JSONDecodeError:
-            print("Error reading contacts.json. Starting with an empty contact list.")
+def find_contacts_by_name(data, name):
+    return [contact for contact in data['contacts'] if name.lower() in contact['name'].lower()]
 
-        # Load notes from file
-        try:
-            with open("notes.json", "r") as file:
-                notes_data = json.load(file)
-                self.notes = [Note(n["text"], n["tags"]) for n in notes_data]
-        except FileNotFoundError:
-            print("notes.json not found. Starting with an empty notes list.")
-        except json.JSONDecodeError:
-            print("Error reading notes.json. Starting with an empty notes list.")
+def find_notes_by_tag(data, tag):
+    return [note for note in data['notes'] if tag.lower() in note.get('tags', '').lower()]
 
-    def save_data(self):
-        with open("contacts.json", "w") as file:
-            contacts_data = [c.to_dict() for c in self.contacts]
-            json.dump(contacts_data, file, indent=4)
+def upcoming_birthdays(data, days):
+    today = datetime.today()
+    upcoming = []
+    for contact in data['contacts']:
+        if 'birthday' in contact:
+            birthday = datetime.strptime(contact['birthday'], "%Y-%m-%d")
+            birthday_this_year = birthday.replace(year=today.year)
+            if 0 <= (birthday_this_year - today).days < days:
+                upcoming.append(contact)
+    return upcoming
 
-        with open("notes.json", "w") as file:
-            notes_data = [n.to_dict() for n in self.notes]
-            json.dump(notes_data, file, indent=4)
+# Hauptfunktionen
+def add_contact(data):
+    name = input("Name: ")
+    address = input("Address: ")
+    phone = input("Phone: ")
+    email = input("Email: ")
+    birthday = input("Birthday (YYYY-MM-DD): ")
+    
+    if not validate_phone(phone):
+        print("Invalid phone number.")
+        return
+    if not validate_email(email):
+        print("Invalid email address.")
+        return
+    
+    data['contacts'].append({
+        'name': name,
+        'address': address,
+        'phone': phone,
+        'email': email,
+        'birthday': birthday
+    })
+    save_data(data)
+    print("Contact added.")
 
-    def add_contact(self, name, address, phone, email, birthday):
-        if not re.match(r"^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$", phone):
-            print("Invalid phone number!")
-            return
+def edit_contact(data):
+    name = input("Enter the name of the contact to edit: ")
+    contacts = find_contacts_by_name(data, name)
+    if not contacts:
+        print("No contacts found.")
+        return
+    
+    contact = contacts[0]
+    print(f"Editing contact: {contact['name']}")
+    contact['address'] = input(f"Address ({contact['address']}): ") or contact['address']
+    contact['phone'] = input(f"Phone ({contact['phone']}): ") or contact['phone']
+    contact['email'] = input(f"Email ({contact['email']}): ") or contact['email']
+    contact['birthday'] = input(f"Birthday ({contact['birthday']}): ") or contact['birthday']
+    
+    if not validate_phone(contact['phone']):
+        print("Invalid phone number.")
+        return
+    if not validate_email(contact['email']):
+        print("Invalid email address.")
+        return
+    
+    save_data(data)
+    print("Contact updated.")
 
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
-            print("Invalid email address!")
-            return
+def delete_contact(data):
+    name = input("Enter the name of the contact to delete: ")
+    contacts = find_contacts_by_name(data, name)
+    if not contacts:
+        print("No contacts found.")
+        return
+    
+    data['contacts'].remove(contacts[0])
+    save_data(data)
+    print("Contact deleted.")
 
-        try:
-            birthday_date = datetime.strptime(birthday, "%Y-%m-%d")
-        except ValueError:
-            print("Invalid birthday date format!")
-            return
+def search_contact(data):
+    name = input("Enter the name to search: ")
+    contacts = find_contacts_by_name(data, name)
+    if not contacts:
+        print("No contacts found.")
+        return
+    
+    for contact in contacts:
+        print(contact)
 
-        contact = Contact(name, address, phone, email, birthday_date)
-        self.contacts.append(contact)
-        self.save_data()
-        print("Contact added successfully!")
+def list_upcoming_birthdays(data):
+    days = int(input("Enter the number of days to check for upcoming birthdays: "))
+    upcoming = upcoming_birthdays(data, days)
+    if not upcoming:
+        print("No upcoming birthdays.")
+        return
+    
+    for contact in upcoming:
+        print(contact)
 
-    def search_contacts(self, query):
-        matching_contacts = [c for c in self.contacts if query.lower() in c.name.lower()]
-        self.display_contacts(matching_contacts)
+def add_note(data):
+    title = input("Title: ")
+    content = input("Content: ")
+    tags = input("Tags (comma-separated): ")
+    
+    data['notes'].append({
+        'title': title,
+        'content': content,
+        'tags': tags
+    })
+    save_data(data)
+    print("Note added.")
 
-    def display_contacts(self, contacts):
-        if not contacts:
-            print("No contacts found.")
-        else:
-            for i, contact in enumerate(contacts, start=1):
-                print(f"{i}. Name: {contact.name}")
-                print(f"   Address: {contact.address}")
-                print(f"   Phone: {contact.phone}")
-                print(f"   Email: {contact.email}")
-                print(f"   Birthday: {contact.birthday.strftime('%Y-%m-%d')}")
-                print()
+def edit_note(data):
+    title = input("Enter the title of the note to edit: ")
+    notes = [note for note in data['notes'] if title.lower() in note['title'].lower()]
+    if not notes:
+        print("No notes found.")
+        return
+    
+    note = notes[0]
+    print(f"Editing note: {note['title']}")
+    note['content'] = input(f"Content ({note['content']}): ") or note['content']
+    note['tags'] = input(f"Tags ({note['tags']}): ") or note['tags']
+    
+    save_data(data)
+    print("Note updated.")
 
-    def edit_contact(self, index, name, address, phone, email, birthday):
-        if not re.match(r"^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$", phone):
-            print("Invalid phone number!")
-            return
+def delete_note(data):
+    title = input("Enter the title of the note to delete: ")
+    notes = [note for note in data['notes'] if title.lower() in note['title'].lower()]
+    if not notes:
+        print("No notes found.")
+        return
+    
+    data['notes'].remove(notes[0])
+    save_data(data)
+    print("Note deleted.")
 
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
-            print("Invalid email address!")
-            return
+def search_note_by_tag(data):
+    tag = input("Enter the tag to search: ")
+    notes = find_notes_by_tag(data, tag)
+    if not notes:
+        print("No notes found.")
+        return
+    
+    for note in notes:
+        print(note)
 
-        try:
-            birthday_date = datetime.strptime(birthday, "%Y-%m-%d")
-        except ValueError:
-            print("Invalid birthday date format!")
-            return
+def help():
+    print("Available commands:")
+    print("  1. Add contact")
+    print("  2. Edit contact")
+    print("  3. Delete contact")
+    print("  4. Search contact")
+    print("  5. Upcoming birthdays")
+    print("  6. Add note")
+    print("  7. Edit note")
+    print("  8. Delete note")
+    print("  9. Search note by tag")
+    print("  0. Help")
+    print("  10. Exit")
 
-        if 0 <= index < len(self.contacts):
-            contact = self.contacts[index]
-            contact.name = name
-            contact.address = address
-            contact.phone = phone
-            contact.email = email
-            contact.birthday = birthday_date
-            self.save_data()
-            print("Contact updated successfully!")
-        else:
-            print("Invalid contact index!")
-
-    def delete_contact(self, index):
-        if 0 <= index < len(self.contacts):
-            del self.contacts[index]
-            self.save_data()
-            print("Contact deleted successfully!")
-        else:
-            print("Invalid contact index!")
-
-    def list_upcoming_birthdays(self, days):
-        today = datetime.now().date()
-        end_date = today + timedelta(days=days)
-
-        upcoming_birthdays = [c for c in self.contacts if today <= c.birthday.date() <= end_date]
-
-        if upcoming_birthdays:
-            print(f"Upcoming birthdays in the next {days} days:")
-            self.display_contacts(upcoming_birthdays)
-        else:
-            print("No upcoming birthdays found.")
-
-    def add_note(self, text, tags=None):
-        note = Note(text, tags)
-        self.notes.append(note)
-        self.save_data()
-        print("Note added successfully!")
-
-    def search_notes(self, query):
-        matching_notes = [n for n in self.notes if query.lower() in n.text.lower() or query.lower() in [t.lower() for t in n.tags]]
-        self.display_notes(matching_notes)
-
-    def display_notes(self, notes):
-        if not notes:
-            print("No notes found.")
-        else:
-            for i, note in enumerate(notes, start=1):
-                print(f"{i}. Text: {note.text}")
-                print(f"   Tags: {', '.join(note.tags)}")
-                print()
-
-    def edit_note(self, index, text, tags=None):
-        if 0 <= index < len(self.notes):
-            note = self.notes[index]
-            note.text = text
-            note.tags = tags or []
-            self.save_data()
-            print("Note updated successfully!")
-        else:
-            print("Invalid note index!")
-
-    def delete_note(self, index):
-        if 0 <= index < len(self.notes):
-            del self.notes[index]
-            self.save_data()
-            print("Note deleted successfully!")
-        else:
-            print("Invalid note index!")
-
-    def suggest_command(self, query):
-        if "add" in query.lower() and "contact" in query.lower():
-            print("Suggested command: add_contact")
-        elif "search" in query.lower() and "contact" in query.lower():
-            print("Suggested command: search_contacts")
-        elif "edit" in query.lower() and "contact" in query.lower():
-            print("Suggested command: edit_contact")
-        elif "delete" in query.lower() and "contact" in query.lower():
-            print("Suggested command: delete_contact")
-        elif "birthday" in query.lower() or "upcoming" in query.lower():
-            print("Suggested command: list_upcoming_birthdays")
-        elif "add" in query.lower() and "note" in query.lower():
-            print("Suggested command: add_note")
-        elif "search" in query.lower() and "note" in query.lower():
-            print("Suggested command: search_notes")
-        elif "edit" in query.lower() and "note" in query.lower():
-            print("Suggested command: edit_note")
-        elif "delete" in query.lower() and "note" in query.lower():
-            print("Suggested command: delete_note")
-        else:
-            print("No command suggestion available.")
-
+# Hauptprogramm
 def main():
-    assistant = PersonalAssistant()
-
+    data = load_data()
+    
     while True:
-        print("\nPersonal Assistant Menu:")
-        print("1. Add Contact")
-        print("2. Search Contacts")
-        print("3. Edit Contact")
-        print("4. Delete Contact")
-        print("5. List Upcoming Birthdays")
-        print("6. Add Note")
-        print("7. Search Notes")
-        print("8. Edit Note")
-        print("9. Delete Note")
-        print("10. Suggest Command")
-        print("0. Exit")
-
-        choice = input("Enter your choice: ")
-
-        if choice == "1":
-            name = input("Enter name: ")
-            address = input("Enter address: ")
-            phone = input("Enter phone number: ")
-            email = input("Enter email address: ")
-            birthday = input("Enter birthday (YYYY-MM-DD): ")
-            assistant.add_contact(name, address, phone, email, birthday)
-        elif choice == "2":
-            query = input("Enter search query: ")
-            assistant.search_contacts(query)
-        elif choice == "3":
-            print("Here are your contacts:")
-            assistant.display_contacts(assistant.contacts)
-            index = int(input("Enter contact index: ")) - 1
-            name = input("Enter updated name: ")
-            address = input("Enter updated address: ")
-            phone = input("Enter updated phone number: ")
-            email = input("Enter updated email address: ")
-            birthday = input("Enter updated birthday (YYYY-MM-DD): ")
-            assistant.edit_contact(index, name, address, phone, email, birthday)
-        elif choice == "4":
-            print("Here are your contacts:")
-            assistant.display_contacts(assistant.contacts)
-            index = int(input("Enter contact index: ")) - 1
-            assistant.delete_contact(index)
-        elif choice == "5":
-            days = int(input("Enter number of days: "))
-            assistant.list_upcoming_birthdays(days)
-        elif choice == "6":
-            text = input("Enter note text: ")
-            tags_input = input("Enter tags (comma-separated): ")
-            tags = [tag.strip() for tag in tags_input.split(",")] if tags_input else []
-            assistant.add_note(text, tags)
-        elif choice == "7":
-            query = input("Enter search query: ")
-            assistant.search_notes(query)
-        elif choice == "8":
-            print("Here are your notes:")
-            assistant.display_notes(assistant.notes)
-            index = int(input("Enter note index: ")) - 1
-            text = input("Enter updated note text: ")
-            tags_input = input("Enter updated tags (comma-separated): ")
-            tags = [tag.strip() for tag in tags_input.split(",")] if tags_input else []
-            assistant.edit_note(index, text, tags)
-        elif choice == "9":
-            print("Here are your notes:")
-            assistant.display_notes(assistant.notes)
-            index = int(input("Enter note index: ")) - 1
-            assistant.delete_note(index)
-        elif choice == "10":
-            query = input("Enter your query: ")
-            assistant.suggest_command(query)
-        elif choice == "0":
-            print("Exiting...")
+        help()
+        try:
+            command = int(input("Enter a command number: ").strip())
+        except ValueError:
+            print("Invalid command number.")
+            continue
+        
+        if command == 1:
+            add_contact(data)
+        elif command == 2:
+            edit_contact(data)
+        elif command == 3:
+            delete_contact(data)
+        elif command == 4:
+            search_contact(data)
+        elif command == 5:
+            list_upcoming_birthdays(data)
+        elif command == 6:
+            add_note(data)
+        elif command == 7:
+            edit_note(data)
+        elif command == 8:
+            delete_note(data)
+        elif command == 9:
+            search_note_by_tag(data)
+        elif command == 0:
+            help()
+        elif command == 10:
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Unknown command number. Type '0' for a list of commands.")
 
 if __name__ == "__main__":
     main()

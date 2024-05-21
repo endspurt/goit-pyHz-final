@@ -1,0 +1,19 @@
+{
+    "contacts": [
+        {
+            "name": "Zimmermann",
+            "address": "Johannes Str.139",
+            "phone": "+491607363464",
+            "email": "test2008@gmail.com",
+            "birthday": "2008-08-08"
+        },
+        {
+            "name": "Michael Schumacher",
+            "address": "Koelner Str. 13",
+            "phone": "+437487585",
+            "email": "michael@web.de",
+            "birthday": "1969-01-07"
+        }
+    ],
+    "notes": []
+}
