@@ -5,5 +5,19 @@
         "phone": "+491234567890",
         "email": " max.mustermann@example.com",
         "birthday": "1990-01-01"
+    },
+    {
+        "name": "Denis Piskorsky",
+        "address": "sumskaja str.35",
+        "phone": "+49234857547",
+        "email": "webse@google.de",
+        "birthday": "1975-08-08"
+    },
+    {
+        "name": "Vasja Ska4ko",
+        "address": "Mezhevskoy bezirk",
+        "phone": "+38067423536",
+        "email": "vasja@ukr.net",
+        "birthday": "1975-06-15"
     }
 ]

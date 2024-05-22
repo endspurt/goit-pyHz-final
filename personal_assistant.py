@@ -22,7 +22,8 @@ def validate_email(email):
 def validate_phone(phone):
     return re.match(r"^\+?1?\d{9,15}$", phone)
 
-def add_contact(data):
+def add_contact():
+    data = load_data(CONTACTS_FILE)
     name = input("Name: ")
     address = input("Address: ")
     phone = input("Phone: ")
@@ -47,7 +48,9 @@ def add_contact(data):
     save_data(data, CONTACTS_FILE)
     print("Contact added successfully")
 
-def list_upcoming_birthdays(data, days):
+def list_upcoming_birthdays():
+    data = load_data(CONTACTS_FILE)
+    days = int(input("Enter number of days: "))
     today = datetime.today()
     upcoming = []
     for contact in data:
@@ -61,8 +64,9 @@ def list_upcoming_birthdays(data, days):
         for contact in upcoming:
             print(contact)
 
-def search_contacts(data, query):
-    query = query.strip().lower()
+def search_contacts():
+    data = load_data(CONTACTS_FILE)
+    query = input("Enter search query: ").strip().lower()
     if not query:
         print("No contacts found. Please provide a valid search query.")
         return
@@ -80,9 +84,11 @@ def search_contacts(data, query):
     else:
         print("No contacts found with the name:", query)
 
-def edit_contact(data, name):
+def edit_contact():
+    data = load_data(CONTACTS_FILE)
+    name = input("Enter contact name to edit: ").strip().lower()
     for contact in data:
-        if contact["name"].lower() == name.lower():
+        if contact["name"].lower() == name:
             contact["address"] = input(f"New address ({contact['address']}): ") or contact["address"]
             contact["phone"] = input(f"New phone ({contact['phone']}): ") or contact["phone"]
             contact["email"] = input(f"New email ({contact['email']}): ") or contact["email"]
@@ -92,8 +98,10 @@ def edit_contact(data, name):
             return
     print("Contact not found")
 
-def delete_contact(data, name):
-    data = [contact for contact in data if contact["name"].lower() != name.lower()]
+def delete_contact():
+    data = load_data(CONTACTS_FILE)
+    name = input("Enter contact name to delete: ").strip().lower()
+    data = [contact for contact in data if contact["name"].lower() != name]
     save_data(data, CONTACTS_FILE)
     print("Contact deleted successfully")
 
@@ -106,9 +114,9 @@ def add_note():
     save_data(data, NOTES_FILE)
     print("Note added successfully")
 
-def search_notes(query):
+def search_notes():
     data = load_data(NOTES_FILE)
-    query = query.strip().lower()
+    query = input("Enter search query: ").strip().lower()
     if not query:
         print("No notes found. Please provide a valid search query.")
         return
@@ -154,31 +162,24 @@ def main_menu():
     print("10. Exit")
 
 def main():
-    contacts = load_data(CONTACTS_FILE)
-    
     while True:
         main_menu()
         choice = input("Enter your choice: ")
         
         if choice == "1":
-            add_contact(contacts)
+            add_contact()
         elif choice == "2":
-            days = int(input("Enter number of days: "))
-            list_upcoming_birthdays(contacts, days)
+            list_upcoming_birthdays()
         elif choice == "3":
-            query = input("Enter search query: ")
-            search_contacts(contacts, query)
+            search_contacts()
         elif choice == "4":
-            name = input("Enter contact name to edit: ")
-            edit_contact(contacts, name)
+            edit_contact()
         elif choice == "5":
-            name = input("Enter contact name to delete: ")
-            delete_contact(contacts, name)
+            delete_contact()
         elif choice == "6":
             add_note()
         elif choice == "7":
-            query = input("Enter search query: ")
-            search_notes(query)
+            search_notes()
         elif choice == "8":
             edit_note()
         elif choice == "9":
