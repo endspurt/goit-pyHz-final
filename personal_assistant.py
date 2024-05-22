@@ -3,25 +3,31 @@ import os
 import re
 from datetime import datetime, timedelta
 
+# File paths for contacts and notes
 CONTACTS_FILE = 'contacts.json'
 NOTES_FILE = 'notes.json'
 
+# Function to load data from a JSON file
 def load_data(file):
     if os.path.exists(file):
         with open(file, 'r') as f:
             return json.load(f)
     return []
 
+# Function to save data to a JSON file
 def save_data(data, file):
     with open(file, 'w') as f:
         json.dump(data, f, indent=4)
 
+# Function to validate email address format
 def validate_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
+# Function to validate phone number format
 def validate_phone(phone):
     return re.match(r"^\+?1?\d{9,15}$", phone)
 
+# Function to add a new contact
 def add_contact():
     data = load_data(CONTACTS_FILE)
     name = input("Name: ")
@@ -48,6 +54,7 @@ def add_contact():
     save_data(data, CONTACTS_FILE)
     print("Contact added successfully")
 
+# Function to list upcoming birthdays
 def list_upcoming_birthdays():
     data = load_data(CONTACTS_FILE)
     days = int(input("Enter number of days: "))
@@ -64,6 +71,7 @@ def list_upcoming_birthdays():
         for contact in upcoming:
             print(contact)
 
+# Function to search contacts by name
 def search_contacts():
     data = load_data(CONTACTS_FILE)
     query = input("Enter search query: ").strip().lower()
@@ -84,6 +92,7 @@ def search_contacts():
     else:
         print("No contacts found with the name:", query)
 
+# Function to edit an existing contact
 def edit_contact():
     data = load_data(CONTACTS_FILE)
     name = input("Enter contact name to edit: ").strip().lower()
@@ -98,6 +107,7 @@ def edit_contact():
             return
     print("Contact not found")
 
+# Function to delete a contact
 def delete_contact():
     data = load_data(CONTACTS_FILE)
     name = input("Enter contact name to delete: ").strip().lower()
@@ -105,6 +115,7 @@ def delete_contact():
     save_data(data, CONTACTS_FILE)
     print("Contact deleted successfully")
 
+# Function to add a new note
 def add_note():
     data = load_data(NOTES_FILE)
     text = input("Note text: ")
@@ -114,6 +125,7 @@ def add_note():
     save_data(data, NOTES_FILE)
     print("Note added successfully")
 
+# Function to search notes by text or tags
 def search_notes():
     data = load_data(NOTES_FILE)
     query = input("Enter search query: ").strip().lower()
@@ -129,6 +141,7 @@ def search_notes():
     else:
         print("No notes found with the query:", query)
 
+# Function to edit an existing note
 def edit_note():
     data = load_data(NOTES_FILE)
     note_text = input("Enter note text to edit: ").strip().lower()
@@ -141,6 +154,7 @@ def edit_note():
             return
     print("Note not found")
 
+# Function to delete a note
 def delete_note():
     data = load_data(NOTES_FILE)
     note_text = input("Enter note text to delete: ").strip().lower()
@@ -148,6 +162,7 @@ def delete_note():
     save_data(data, NOTES_FILE)
     print("Note deleted successfully")
 
+# Function to display the main menu
 def main_menu():
     print("\nPersonal Assistant Menu:")
     print("1. Add Contact")
@@ -161,6 +176,7 @@ def main_menu():
     print("9. Delete Note")
     print("10. Exit")
 
+# Main function to handle user input and call the appropriate functions
 def main():
     while True:
         main_menu()
@@ -190,5 +206,44 @@ def main():
         else:
             print("Invalid choice. Please enter a number between 1 and 10.")
 
+# Ensure the main function runs when the script is executed
 if __name__ == "__main__":
     main()
+
+
+
+'''Importing Modules:
+
+import json: To handle JSON file reading and writing.
+import os: To check if files exist.
+import re: To use regular expressions for validating email and phone formats.
+from datetime import datetime, timedelta: To work with dates and times.
+File Paths:
+
+CONTACTS_FILE = 'contacts.json': Path to the JSON file storing contacts.
+NOTES_FILE = 'notes.json': Path to the JSON file storing notes.
+Load and Save Data Functions:
+
+load_data(file): Loads data from a JSON file. Returns an empty list if the file does not exist.
+save_data(data, file): Saves data to a JSON file with indentation for readability.
+Validation Functions:
+
+validate_email(email): Validates the email format using a regular expression.
+validate_phone(phone): Validates the phone format using a regular expression.
+Contact Management Functions:
+
+add_contact(): Adds a new contact to the contacts list.
+list_upcoming_birthdays(): Lists contacts with birthdays in the next specified number of days.
+search_contacts(): Searches for contacts by name.
+edit_contact(): Edits an existing contact.
+delete_contact(): Deletes a contact by name.
+Note Management Functions:
+
+add_note(): Adds a new note to the notes list.
+search_notes(): Searches for notes by text or tags.
+edit_note(): Edits an existing note.
+delete_note(): Deletes a note by text.
+Main Menu and Main Function:
+
+main_menu(): Displays the main menu with options.
+main(): Handles user input and calls the appropriate functions based on the user's choice.'''

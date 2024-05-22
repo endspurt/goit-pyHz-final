@@ -1,363 +1,320 @@
 
+Gerne erkläre ich den Python-Code Schritt für Schritt, damit Sie alles gut verstehen.
 
-### Überblick
+### Importieren der Module
 
-Dieser Code definiert eine persönliche Assistenten-Anwendung, die Kontakte und Notizen verwaltet. 
-Es gibt zwei Hauptklassen (`Contact` und `Note`), die die Kontakte und Notizen darstellen, 
-und eine Klasse (`PersonalAssistant`), die die Hauptlogik der Anwendung enthält.
+```python
+import json
+import os
+import re
+from datetime import datetime, timedelta
+```
 
-### Schritt-für-Schritt Erklärung
+- **json**: Zum Laden und Speichern von JSON-Dateien.
+- **os**: Zum Überprüfen, ob eine Datei existiert.
+- **re**: Zum Validieren von E-Mail-Adressen und Telefonnummern mittels regulärer Ausdrücke.
+- **datetime, timedelta**: Zum Arbeiten mit Datums- und Zeitwerten.
 
-1. **Importe und Bibliotheken**:
-    ```python
-    import json
-    import re
-    from datetime import datetime, timedelta
-    ```
-    Diese Zeilen importieren die notwendigen Bibliotheken. `json` wird zum Speichern und Laden von Daten verwendet, `re` zur Validierung 
-    von E-Mail- und Telefonnummern, und `datetime` zur Handhabung von Datums- und Zeitfunktionen.
+### Dateipfade
 
-2. **Contact Klasse**:
-    ```python
-    class Contact:
-        def __init__(self, name, address, phone, email, birthday):
-            self.name = name
-            self.address = address
-            self.phone = phone
-            self.email = email
-            self.birthday = birthday
+```python
+CONTACTS_FILE = 'contacts.json'
+NOTES_FILE = 'notes.json'
+```
 
-        def to_dict(self):
-            return {
-                "name": self.name,
-                "address": self.address,
-                "phone": self.phone,
-                "email": self.email,
-                "birthday": self.birthday.strftime("%Y-%m-%d")
-            }
-    ```
-    Diese Klasse repräsentiert einen Kontakt. Die `__init__` Methode initialisiert die Attribute eines Kontakts. 
-    Die `to_dict` Methode konvertiert den Kontakt in ein Wörterbuch, um ihn später als JSON zu speichern.
+- **CONTACTS_FILE**: Pfad zur JSON-Datei, die Kontakte speichert.
+- **NOTES_FILE**: Pfad zur JSON-Datei, die Notizen speichert.
 
-3. **Note Klasse**:
-    ```python
-    class Note:
-        def __init__(self, text, tags=None):
-            self.text = text
-            self.tags = tags or []
+### Funktionen zum Laden und Speichern von Daten
 
-        def to_dict(self):
-            return {
-                "text": self.text,
-                "tags": self.tags
-            }
-    ```
-    Diese Klasse repräsentiert eine Notiz. Die `__init__` Methode initialisiert die Attribute einer Notiz. Die `to_dict` 
-    Methode konvertiert die Notiz in ein Wörterbuch, um sie später als JSON zu speichern.
+```python
+def load_data(file):
+    if os.path.exists(file):
+        with open(file, 'r') as f:
+            return json.load(f)
+    return []
 
-4. **PersonalAssistant Klasse**:
-    ```python
-    class PersonalAssistant:
-        def __init__(self):
-            self.contacts = []
-            self.notes = []
-            self.load_data()
-    ```
-    Diese Klasse verwaltet die Kontakte und Notizen. Die `__init__` Methode initialisiert leere Listen für Kontakte 
-    und Notizen und lädt vorhandene Daten aus Dateien.
+def save_data(data, file):
+    with open(file, 'w') as f:
+        json.dump(data, f, indent=4)
+```
 
-5. **Daten laden**:
-    ```python
-    def load_data(self):
-        try:
-            with open("contacts.json", "r") as file:
-                contacts_data = json.load(file)
-                self.contacts = [Contact(c["name"], c["address"], c["phone"], c["email"], datetime.strptime(c["birthday"], "%Y-%m-%d")) for c in contacts_data]
-        except FileNotFoundError:
-            pass
+- **load_data(file)**: Lädt Daten aus einer JSON-Datei. Wenn die Datei nicht existiert, wird eine leere Liste zurückgegeben.
+- **save_data(data, file)**: Speichert Daten in einer JSON-Datei mit Einrückungen für bessere Lesbarkeit.
 
-        try:
-            with open("notes.json", "r") as file:
-                notes_data = json.load(file)
-                self.notes = [Note(n["text"], n["tags"]) for n in notes_data]
-        except FileNotFoundError:
-            pass
-    ```
-    Diese Methode lädt die Daten aus den Dateien `contacts.json` und `notes.json`. Wenn die Dateien nicht gefunden werden, 
-    wird eine Ausnahme gefangen und nichts passiert (`pass`).
+### Validierungsfunktionen
 
-6. **Daten speichern**:
-    ```python
-    def save_data(self):
-        with open("contacts.json", "w") as file:
-            contacts_data = [c.to_dict() for c in self.contacts]
-            json.dump(contacts_data, file, indent=4)
+```python
+def validate_email(email):
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
-        with open("notes.json", "w") as file:
-            notes_data = [n.to_dict() for n in self.notes]
-            json.dump(notes_data, file, indent=4)
-    ```
-    Diese Methode speichert die aktuellen Kontakte und Notizen in den entsprechenden Dateien. Dabei wird jede Kontakt- 
-    und Notizinstanz in ein Wörterbuch konvertiert, bevor sie als JSON gespeichert wird.
+def validate_phone(phone):
+    return re.match(r"^\+?1?\d{9,15}$", phone)
+```
 
-7. **Kontakt hinzufügen**:
-    ```python
-    def add_contact(self, name, address, phone, email, birthday):
-        if not re.match(r"^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$", phone):
-            print("Invalid phone number!")
+- **validate_email(email)**: Überprüft, ob die E-Mail-Adresse dem Muster einer gültigen E-Mail-Adresse entspricht.
+- **validate_phone(phone)**: Überprüft, ob die Telefonnummer dem Muster einer gültigen Telefonnummer entspricht.
+
+### Funktionen zur Verwaltung von Kontakten
+
+```python
+def add_contact():
+    data = load_data(CONTACTS_FILE)
+    name = input("Name: ")
+    address = input("Address: ")
+    phone = input("Phone: ")
+    email = input("Email: ")
+    birthday = input("Birthday (YYYY-MM-DD): ")
+    
+    if not validate_email(email):
+        print("Invalid email format")
+        return
+    if not validate_phone(phone):
+        print("Invalid phone format")
+        return
+    
+    contact = {
+        "name": name,
+        "address": address,
+        "phone": phone,
+        "email": email,
+        "birthday": birthday
+    }
+    data.append(contact)
+    save_data(data, CONTACTS_FILE)
+    print("Contact added successfully")
+```
+
+- **add_contact()**: 
+  - Lädt die vorhandenen Kontakte.
+  - Fragt den Benutzer nach den Details des neuen Kontakts.
+  - Validiert E-Mail-Adresse und Telefonnummer.
+  - Fügt den neuen Kontakt zur Liste hinzu und speichert die aktualisierte Liste.
+
+```python
+def list_upcoming_birthdays():
+    data = load_data(CONTACTS_FILE)
+    days = int(input("Enter number of days: "))
+    today = datetime.today()
+    upcoming = []
+    for contact in data:
+        birthday = datetime.strptime(contact["birthday"], "%Y-%m-%d")
+        this_year_birthday = birthday.replace(year=today.year)
+        if 0 <= (this_year_birthday - today).days <= days:
+            upcoming.append(contact)
+    if not upcoming:
+        print("No upcoming birthdays in the next", days, "days")
+    else:
+        for contact in upcoming:
+            print(contact)
+```
+
+- **list_upcoming_birthdays()**:
+  - Lädt die Kontakte.
+  - Fragt den Benutzer nach der Anzahl der Tage, für die die Geburtstage angezeigt werden sollen.
+  - Berechnet die Geburtstage, die in den nächsten Tagen anstehen, und zeigt sie an.
+
+```python
+def search_contacts():
+    data = load_data(CONTACTS_FILE)
+    query = input("Enter search query: ").strip().lower()
+    if not query:
+        print("No contacts found. Please provide a valid search query.")
+        return
+
+    results = [contact for contact in data if query in contact["name"].lower()]
+    if results:
+        print("Search results:")
+        for result in results:
+            print("Name:", result["name"])
+            print("Address:", result["address"])
+            print("Phone:", result["phone"])
+            print("Email:", result["email"])
+            print("Birthday:", result["birthday"])
+            print()
+    else:
+        print("No contacts found with the name:", query)
+```
+
+- **search_contacts()**:
+  - Lädt die Kontakte.
+  - Fragt den Benutzer nach einem Suchbegriff.
+  - Sucht nach Kontakten, deren Namen den Suchbegriff enthalten.
+  - Zeigt die Suchergebnisse an.
+
+```python
+def edit_contact():
+    data = load_data(CONTACTS_FILE)
+    name = input("Enter contact name to edit: ").strip().lower()
+    for contact in data:
+        if contact["name"].lower() == name:
+            contact["address"] = input(f"New address ({contact['address']}): ") or contact["address"]
+            contact["phone"] = input(f"New phone ({contact['phone']}): ") or contact["phone"]
+            contact["email"] = input(f"New email ({contact['email']}): ") or contact["email"]
+            contact["birthday"] = input(f"New birthday ({contact['birthday']}): ") or contact["birthday"]
+            save_data(data, CONTACTS_FILE)
+            print("Contact updated successfully")
             return
+    print("Contact not found")
+```
 
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
-            print("Invalid email address!")
+- **edit_contact()**:
+  - Lädt die Kontakte.
+  - Fragt den Benutzer nach dem Namen des Kontakts, der bearbeitet werden soll.
+  - Aktualisiert die Details des Kontakts und speichert die Änderungen.
+
+```python
+def delete_contact():
+    data = load_data(CONTACTS_FILE)
+    name = input("Enter contact name to delete: ").strip().lower()
+    data = [contact for contact in data if contact["name"].lower() != name]
+    save_data(data, CONTACTS_FILE)
+    print("Contact deleted successfully")
+```
+
+- **delete_contact()**:
+  - Lädt die Kontakte.
+  - Fragt den Benutzer nach dem Namen des zu löschenden Kontakts.
+  - Löscht den Kontakt und speichert die aktualisierte Liste.
+
+### Funktionen zur Verwaltung von Notizen
+
+```python
+def add_note():
+    data = load_data(NOTES_FILE)
+    text = input("Note text: ")
+    tags = input("Tags (comma-separated): ").split(",")
+    note = {"text": text, "tags": [tag.strip() for tag in tags]}
+    data.append(note)
+    save_data(data, NOTES_FILE)
+    print("Note added successfully")
+```
+
+- **add_note()**:
+  - Lädt die Notizen.
+  - Fragt den Benutzer nach dem Text der Notiz und den Tags.
+  - Fügt die Notiz zur Liste hinzu und speichert die aktualisierte Liste.
+
+```python
+def search_notes():
+    data = load_data(NOTES_FILE)
+    query = input("Enter search query: ").strip().lower()
+    if not query:
+        print("No notes found. Please provide a valid search query.")
+        return
+
+    results = [note for note in data if query in note["text"].lower() or query in [tag.lower() for tag in note["tags"]]]
+    if results:
+        print("Search results:")
+        for result in results:
+            print(result)
+    else:
+        print("No notes found with the query:", query)
+```
+
+- **search_notes()**:
+  - Lädt die Notizen.
+  - Fragt den Benutzer nach einem Suchbegriff.
+  - Sucht nach Notizen, die den Suchbegriff im Text oder in den Tags enthalten.
+  - Zeigt die Suchergebnisse an.
+
+```python
+def edit_note():
+    data = load_data(NOTES_FILE)
+    note_text = input("Enter note text to edit: ").strip().lower()
+    for note in data:
+        if note["text"].lower() == note_text:
+            note["text"] = input(f"New text ({note['text']}): ") or note["text"]
+            note["tags"] = input(f"New tags (comma-separated) ({', '.join(note['tags'])}): ").split(",") or note["tags"]
+            save_data(data, NOTES_FILE)
+            print("Note updated successfully")
             return
+    print("Note not found")
+```
 
-        contact = Contact(name, address, phone, email, datetime.strptime(birthday, "%Y-%m-%d"))
-        self.contacts.append(contact)
-        self.save_data()
-        print("Contact added successfully!")
-    ```
-    Diese Methode fügt einen neuen Kontakt hinzu. Es wird überprüft, ob die Telefonnummer und die E-Mail-Adresse gültig sind. 
-    Wenn sie gültig sind, wird der Kontakt erstellt, zur Liste hinzugefügt und die Daten werden gespeichert.
+- **edit_note()**:
+  - Lädt die Notizen.
+  - Fragt den Benutzer nach dem Text der zu bearbeitenden Notiz.
+  - Aktualisiert die Details der Notiz und speichert die Änderungen.
 
-8. **Kontakte durchsuchen**:
-    ```python
-    def search_contacts(self, query):
-        matching_contacts = [c for c in self.contacts if query.lower() in c.name.lower()]
-        self.display_contacts(matching_contacts)
-    ```
-    Diese Methode durchsucht die Kontakte nach einem bestimmten Suchbegriff im Namen und zeigt die passenden Kontakte an.
+```python
+def delete_note():
+    data = load_data(NOTES_FILE)
+    note_text = input("Enter note text to delete: ").strip().lower()
+    data = [note for note in data if note["text"].lower() != note_text]
+    save_data(data, NOTES_FILE)
+    print("Note deleted successfully")
+```
 
-9. **Kontakte anzeigen**:
-    ```python
-    def display_contacts(self, contacts):
-        if not contacts:
-            print("No contacts found.")
+- **delete_note()**:
+  - Lädt die Notizen.
+  - Fragt den Benutzer nach dem Text der zu löschenden Notiz.
+  - Löscht die Notiz und speichert die aktualisierte Liste.
+
+### Hauptmenü und Hauptfunktion
+
+```python
+def main_menu():
+    print("\nPersonal Assistant Menu:")
+    print("1. Add Contact")
+    print("2. List Upcoming Birthdays")
+    print("3. Search Contact")
+
+
+    print("4. Edit Contact")
+    print("5. Delete Contact")
+    print("6. Add Note")
+    print("7. Search Note")
+    print("8. Edit Note")
+    print("9. Delete Note")
+    print("10. Exit")
+```
+
+- **main_menu()**:
+  - Zeigt das Hauptmenü des Programms an.
+
+```python
+def main():
+    while True:
+        main_menu()
+        choice = input("Enter your choice: ")
+        
+        if choice == "1":
+            add_contact()
+        elif choice == "2":
+            list_upcoming_birthdays()
+        elif choice == "3":
+            search_contacts()
+        elif choice == "4":
+            edit_contact()
+        elif choice == "5":
+            delete_contact()
+        elif choice == "6":
+            add_note()
+        elif choice == "7":
+            search_notes()
+        elif choice == "8":
+            edit_note()
+        elif choice == "9":
+            delete_note()
+        elif choice == "10":
+            print("Exiting...")
+            break
         else:
-            for i, contact in enumerate(contacts, start=1):
-                print(f"{i}. Name: {contact.name}")
-                print(f"   Address: {contact.address}")
-                print(f"   Phone: {contact.phone}")
-                print(f"   Email: {contact.email}")
-                print(f"   Birthday: {contact.birthday.strftime('%Y-%m-%d')}")
-                print()
-    ```
-    Diese Methode zeigt eine Liste von Kontakten an. Wenn keine Kontakte vorhanden sind, wird eine entsprechende Nachricht ausgegeben.
+            print("Invalid choice. Please enter a number between 1 and 10.")
+```
 
-10. **Kontakt bearbeiten**:
-    ```python
-    def edit_contact(self, index, name, address, phone, email, birthday):
-        if not re.match(r"^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$", phone):
-            print("Invalid phone number!")
-            return
+- **main()**:
+  - Zeigt das Hauptmenü an und wartet auf die Benutzereingabe.
+  - Führt die entsprechende Funktion basierend auf der Benutzereingabe aus.
+  - Beendet das Programm, wenn der Benutzer die Option `10` wählt.
 
-        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
-            print("Invalid email address!")
-            return
+```python
+if __name__ == "__main__":
+    main()
+```
 
-        if 0 <= index < len(self.contacts):
-            contact = self.contacts[index]
-            contact.name = name
-            contact.address = address
-            contact.phone = phone
-            contact.email = email
-            contact.birthday = datetime.strptime(birthday, "%Y-%m-%d")
-            self.save_data()
-            print("Contact updated successfully!")
-        else:
-            print("Invalid contact index!")
-    ```
-    Diese Methode bearbeitet einen vorhandenen Kontakt. Es wird überprüft, ob die Telefonnummer und die E-Mail-Adresse gültig sind. 
-    Wenn sie gültig sind und der Index innerhalb des gültigen Bereichs liegt, wird der Kontakt aktualisiert und die Daten werden gespeichert.
+- Dies stellt sicher, dass das `main()`-Funktion nur ausgeführt wird, wenn das Skript direkt ausgeführt wird.
 
-11. **Kontakt löschen**:
-    ```python
-    def delete_contact(self, index):
-        if 0 <= index < len(self.contacts):
-            del self.contacts[index]
-            self.save_data()
-            print("Contact deleted successfully!")
-        else:
-            print("Invalid contact index!")
-    ```
-    Diese Methode löscht einen Kontakt basierend auf dem angegebenen Index. Wenn der Index gültig ist, wird der Kontakt 
-    gelöscht und die Daten werden gespeichert.
-
-12. **Bevorstehende Geburtstage auflisten**:
-    ```python
-    def list_upcoming_birthdays(self, days):
-        today = datetime.now().date()
-        end_date = today + timedelta(days=days)
-
-        upcoming_birthdays = [c for c in self.contacts if today <= c.birthday.date() <= end_date]
-
-        if upcoming_birthdays:
-            print(f"Upcoming birthdays in the next {days} days:")
-            self.display_contacts(upcoming_birthdays)
-        else:
-            print("No upcoming birthdays found.")
-    ```
-    Diese Methode listet die bevorstehenden Geburtstage innerhalb einer bestimmten Anzahl von Tagen auf. Es wird das aktuelle 
-    Datum und das Enddatum berechnet und die Kontakte mit Geburtstagen in diesem Bereich angezeigt.
-
-13. **Notiz hinzufügen**:
-    ```python
-    def add_note(self, text, tags=None):
-        note = Note(text, tags)
-        self.notes.append(note)
-        self.save_data()
-        print("Note added successfully!")
-    ```
-    Diese Methode fügt eine neue Notiz hinzu. Die Notiz wird erstellt, zur Liste hinzugefügt und die Daten werden gespeichert.
-
-14. **Notizen durchsuchen**:
-    ```python
-    def search_notes(self, query):
-        matching_notes = [n for n in self.notes if query.lower() in n.text.lower() or query.lower() in [t.lower() for t in n.tags]]
-        self.display_notes(matching_notes)
-    ```
-    Diese Methode durchsucht die Notizen nach einem bestimmten Suchbegriff im Text oder in den Tags und zeigt die passenden Notizen an.
-
-15. **Notizen anzeigen**:
-    ```python
-    def display_notes(self, notes):
-        if not notes:
-            print("No notes found.")
-        else:
-            for i, note in enumerate
-
-(notes, start=1):
-                print(f"{i}. Text: {note.text}")
-                print(f"   Tags: {', '.join(note.tags)}")
-                print()
-    ```
-    Diese Methode zeigt eine Liste von Notizen an. Wenn keine Notizen vorhanden sind, wird eine entsprechende Nachricht ausgegeben.
-
-16. **Notiz bearbeiten**:
-    ```python
-    def edit_note(self, index, text, tags=None):
-        if 0 <= index < len(self.notes):
-            note = self.notes[index]
-            note.text = text
-            note.tags = tags or []
-            self.save_data()
-            print("Note updated successfully!")
-        else:
-            print("Invalid note index!")
-    ```
-    Diese Methode bearbeitet eine vorhandene Notiz. Wenn der Index gültig ist, wird die Notiz aktualisiert und die Daten werden gespeichert.
-
-17. **Notiz löschen**:
-    ```python
-    def delete_note(self, index):
-        if 0 <= index < len(self.notes):
-            del self.notes[index]
-            self.save_data()
-            print("Note deleted successfully!")
-        else:
-            print("Invalid note index!")
-    ```
-    Diese Methode löscht eine Notiz basierend auf dem angegebenen Index. Wenn der Index gültig ist, wird die Notiz gelöscht und die Daten werden gespeichert.
-
-18. **Befehle vorschlagen**:
-    ```python
-    def suggest_command(self, query):
-        if "add" in query.lower() and "contact" in query.lower():
-            print("Suggested command: add_contact")
-        elif "search" in query.lower() and "contact" in query.lower():
-            print("Suggested command: search_contacts")
-        elif "edit" in query.lower() and "contact" in query.lower():
-            print("Suggested command: edit_contact")
-        elif "delete" in query.lower() and "contact" in query.lower():
-            print("Suggested command: delete_contact")
-        elif "birthday" in query.lower() or "upcoming" in query.lower():
-            print("Suggested command: list_upcoming_birthdays")
-        elif "add" in query.lower() and "note" in query.lower():
-            print("Suggested command: add_note")
-        elif "search" in query.lower() and "note" in query.lower():
-            print("Suggested command: search_notes")
-        elif "edit" in query.lower() and "note" in query.lower():
-            print("Suggested command: edit_note")
-        elif "delete" in query.lower() and "note" in query.lower():
-            print("Suggested command: delete_note")
-        else:
-            print("No command suggestion available.")
-    ```
-    Diese Methode schlägt basierend auf einer Benutzereingabe einen passenden Befehl vor.
-
-19. **Hauptprogramm**:
-    ```python
-    def main():
-        assistant = PersonalAssistant()
-
-        while True:
-            print("\nPersonal Assistant Menu:")
-            print("1. Add Contact")
-            print("2. Search Contacts")
-            print("3. Edit Contact")
-            print("4. Delete Contact")
-            print("5. List Upcoming Birthdays")
-            print("6. Add Note")
-            print("7. Search Notes")
-            print("8. Edit Note")
-            print("9. Delete Note")
-            print("10. Suggest Command")
-            print("0. Exit")
-
-            choice = input("Enter your choice: ")
-
-            if choice == "1":
-                name = input("Enter name: ")
-                address = input("Enter address: ")
-                phone = input("Enter phone number: ")
-                email = input("Enter email address: ")
-                birthday = input("Enter birthday (YYYY-MM-DD): ")
-                assistant.add_contact(name, address, phone, email, birthday)
-            elif choice == "2":
-                query = input("Enter search query: ")
-                assistant.search_contacts(query)
-            elif choice == "3":
-                index = int(input("Enter contact index: ")) - 1
-                name = input("Enter updated name: ")
-                address = input("Enter updated address: ")
-                phone = input("Enter updated phone number: ")
-                email = input("Enter updated email address: ")
-                birthday = input("Enter updated birthday (YYYY-MM-DD): ")
-                assistant.edit_contact(index, name, address, phone, email, birthday)
-            elif choice == "4":
-                index = int(input("Enter contact index: ")) - 1
-                assistant.delete_contact(index)
-            elif choice == "5":
-                days = int(input("Enter number of days: "))
-                assistant.list_upcoming_birthdays(days)
-            elif choice == "6":
-                text = input("Enter note text: ")
-                tags_input = input("Enter tags (comma-separated): ")
-                tags = [tag.strip() for tag in tags_input.split(",")] if tags_input else []
-                assistant.add_note(text, tags)
-            elif choice == "7":
-                query = input("Enter search query: ")
-                assistant.search_notes(query)
-            elif choice == "8":
-                index = int(input("Enter note index: ")) - 1
-                text = input("Enter updated note text: ")
-                tags_input = input("Enter updated tags (comma-separated): ")
-                tags = [tag.strip() for tag in tags_input.split(",")] if tags_input else []
-                assistant.edit_note(index, text, tags)
-            elif choice == "9":
-                index = int(input("Enter note index: ")) - 1
-                assistant.delete_note(index)
-            elif choice == "10":
-                query = input("Enter your query: ")
-                assistant.suggest_command(query)
-            elif choice == "0":
-                print("Exiting...")
-                break
-            else:
-                print("Invalid choice. Please try again.")
-
-    if __name__ == "__main__":
-        main()
-    ```
-    Diese Funktion enthält das Hauptmenü der Anwendung und ruft die entsprechenden Methoden auf, basierend auf der Auswahl des Benutzers.
-
-Dieser Schritt-für-Schritt-Leitfaden sollte dir helfen, den Code besser zu verstehen und wie er die Kontakte und Notizen verwaltet.
+Mit diesen Erklärungen sollten Sie nun ein gutes Verständnis davon haben, 
+wie das Programm funktioniert. Wenn Sie noch Fragen haben, stehe ich Ihnen gerne zur Verfügung!
